@@ -1,12 +1,16 @@
 node_modules
 npm-debug.log
+dist
 logs
+.cache
 .git
 .github
 .vscode
+.husky
 Dockerfile
 docker-compose.yml
 README.md
 LICENSE
 biome.json
 commitlint.config.mjs
+sea-config.json
