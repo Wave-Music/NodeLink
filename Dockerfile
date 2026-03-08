@@ -13,7 +13,7 @@ COPY scripts/ ./scripts/
 COPY config.default.js ./config.default.js
 COPY plugins/ ./plugins/
 
-RUN npm install --no-save esbuild && node scripts/build.js
+RUN npm install --no-save esbuild postject rcedit && node scripts/build.js
 
 # Stage 2: Runner - Minimal image with bundled output
 FROM node:25-alpine
