@@ -21,6 +21,7 @@ FROM node:25-alpine
 WORKDIR /app
 
 # Copy bundled application and native modules from builder
+COPY --from=builder /app/src ./src/
 COPY --from=builder /app/dist/ ./dist/
 COPY --from=builder /app/config.default.js ./config.default.js
 COPY --from=builder /app/package.json ./package.json
