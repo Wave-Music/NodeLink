@@ -89,27 +89,27 @@ export default class ExternalApiManager {
         if (!entry?.arl || typeof entry.arl !== 'string') continue
         if (!entry?.api_key || typeof entry.api_key !== 'string') continue
 
-        // check if license is string or json string with "license_token" field
+        // check if license is a JSON string containing "license_token" (possibly nested)
         if (entry?.license && typeof entry.license === 'string' && entry.license.startsWith('{')) {
             try {
-                const parsed = JSON.parse(entry.license);
-                if (parsed.license_token) {
-                    entry.license = parsed.license_token;
+                const parsed = JSON.parse(entry.license)
+                const token = parsed.license_token || parsed.LICENCE?.OPTIONS?.license_token
+
+                if (token) {
+                    entry.license = token
                 } else {
                     logger('warn', 'ExternalAPI', `Deezer ARL entry has invalid license format, missing "license_token" field: ${entry.arl.slice(0, 8)}...`)
-                    logger('debug', 'ExternalAPI', `Full license content: ${entry.license}`)
                     continue
                 }
             } catch (e) {
                 logger('warn', 'ExternalAPI', `Deezer ARL entry has invalid license format, not a valid JSON: ${entry.arl.slice(0, 8)}...`)
-                logger('debug', 'ExternalAPI', `Full license content: ${entry.license}`)
                 continue
             }
         }
 
         if (!entry?.license || typeof entry.license !== 'string') {
             if (this.nodelink.options.sources.deezer.decryptionKey) {
-                entry.license = this.nodelink.options.sources.deezer.decryptionKey;
+                entry.license = this.nodelink.options.sources.deezer.decryptionKey
             } else {
                 continue
             }

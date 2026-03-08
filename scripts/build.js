@@ -101,6 +101,11 @@ if (fs.existsSync(mediaplexPkgDir)) {
   }
 }
 
+if (process.env.BUNDLE_ONLY) {
+  console.log('Bundle-only mode: skipping SEA binary creation.')
+  process.exit(0)
+}
+
 const filesToEmbed = {}
 function scanDir(dir, base = '') {
   for (const file of fs.readdirSync(dir)) {
