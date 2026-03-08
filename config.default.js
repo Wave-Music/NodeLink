@@ -509,6 +509,21 @@ export default {
     maxLayersMix: 5,
     autoCleanup: true
   },
+  externalApi: {
+    enabled: false,
+    baseUrl: '',
+    authorization: '',
+    deezer: { // Endpoints: GET /api/deezer/arls (returns { arls: [{ arl: 'arl_value', expires_at: 'iso_ts', license: 'license_value', api_key: 'api_key_value' } ...] }) and POST /api/deezer/report (body { arl: 'arl_value' })
+      enabled: false,
+      failureThreshold: 3, // Remove ARL from rotation after this many consecutive failures
+      refreshIntervalMs: 60 * 60 * 1000, // Refetch ARLs from API interval
+      poolMinSize: 2 // Trigger early refetch when pool drops below this size
+    },
+    youtube: { // Endpoint: GET /api/youtube/tokens (returns { tokens: [{ access_token: 'token_value', refresh_token: 'refresh_token_value', token_type: 'Bearer', expires_at: 'iso_ts' }, ...] }) and POST /api/youtube/tokens (body { access_token: 'token_value' })
+      enabled: false,
+      refreshIntervalMs: 20 * 60 * 60 * 1000 // Refetch tokens interval
+    }
+  },
   plugins: [
     /*  {
           name: 'nodelink-sample-plugin',

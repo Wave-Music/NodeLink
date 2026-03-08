@@ -29,6 +29,7 @@ import {
 import 'dotenv/config'
 import { GatewayEvents } from './constants.js'
 import DosProtectionManager from './managers/dosProtectionManager.js'
+import ExternalApiManager from './managers/externalApiManager.js'
 import PlayerManager from './managers/playerManager.js'
 import PluginManager from './managers/pluginManager.js'
 import RateLimitManager from './managers/rateLimitManager.js'
@@ -174,6 +175,7 @@ class NodelinkServer extends EventEmitter {
     this.statsManager = new statsManager(this)
     this.rateLimitManager = new RateLimitManager(this)
     this.dosProtectionManager = new DosProtectionManager(this)
+    this.externalApiManager = new ExternalApiManager(this)
     this.pluginManager = new PluginManager(this)
     this.sourceWorkerManager =
       isClusterPrimary && options.cluster?.specializedSourceWorker?.enabled
@@ -1527,6 +1529,7 @@ class NodelinkServer extends EventEmitter {
     await this.credentialManager.load()
     await this.trackCacheManager.load()
     await this.statsManager.initialize()
+    await this.externalApiManager.initialize()
 
     // Ensure sources are initialized before proceeding
     if (this._sourceInitPromise) await this._sourceInitPromise
