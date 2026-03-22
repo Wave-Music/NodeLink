@@ -16,6 +16,11 @@ export default class ExternalApiManager {
     this.youtubeTokenIndex = 0
     this.youtubeTokenFailures = new Map()
 
+    // Rip state
+    this.ripTokens = []
+    this._ripFetching = false
+    this._ripRefreshTimer = null
+
     // Timers
     this._deezerRefreshTimer = null
     this._youtubeRefreshTimer = null
@@ -35,6 +40,10 @@ export default class ExternalApiManager {
 
   get youtubeEnabled() {
     return this.enabled && !!this.config?.youtube?.enabled
+  }
+
+  get ripEnabled() {
+    return this.enabled && !!this.config?.rip?.enabled
   }
 
   _getHeaders() {
@@ -61,6 +70,11 @@ export default class ExternalApiManager {
     if (this.youtubeEnabled) {
       await this.fetchYoutubeTokens()
       this._startYoutubeRefreshTimer()
+    }
+
+    if (this.ripEnabled) {
+      await this.fetchRipTokens()
+      this._startRipRefreshTimer()
     }
   }
 
@@ -360,6 +374,86 @@ export default class ExternalApiManager {
     }, refreshInterval)
   }
 
+  // ---- Rip ----
+
+  async fetchRipTokens() {
+    if (this._ripFetching) return
+    this._ripFetching = true
+
+    try {
+      const url = `${this.config.baseUrl}/api/rip/tokens`
+      const { body, error, statusCode } = await makeRequest(url, {
+        method: 'GET',
+        headers: this._getHeaders()
+      })
+
+      if (error || statusCode !== 200 || !body?.tokens || !Array.isArray(body.tokens)) {
+        logger('error', 'ExternalAPI', `Failed to fetch Rip tokens: ${error?.message || `status ${statusCode}`}`)
+        return
+      }
+
+      const now = Date.now()
+      const validTokens = []
+
+      for (const entry of body.tokens) {
+        if (!entry?.access_token || typeof entry.access_token !== 'string') continue
+        if (!entry?.api_url) continue
+
+        const expiresAt = entry.expires_at ? new Date(entry.expires_at).getTime() : null
+        if (expiresAt && expiresAt <= now) continue
+
+        validTokens.push({
+          token: entry.access_token,
+          expiresAt,
+          apiUrl: entry.api_url,
+          environment: entry.environment || ''
+        })
+      }
+
+      this.ripTokens = validTokens
+
+      const devCount = validTokens.filter(t => t.environment === 'dev').length
+      logger('info', 'ExternalAPI', `Fetched ${validTokens.length} Rip tokens (main: ${validTokens.length - devCount}, dev: ${devCount}).`)
+    } catch (e) {
+      logger('error', 'ExternalAPI', `Error fetching Rip tokens: ${e.message}`)
+    } finally {
+      this._ripFetching = false
+    }
+  }
+
+  getRipToken(type) {
+    const now = Date.now()
+
+    // Filter valid, non-expired tokens
+    let candidates = this.ripTokens.filter(t => {
+      if (t.expiresAt && t.expiresAt <= now) return false
+      if (type === 'dev') return t.environment === 'dev'
+      if (type === 'main') return t.environment !== 'dev'
+      return true
+    })
+
+    if (candidates.length === 0) {
+      // Try any valid token
+      candidates = this.ripTokens.filter(t => !t.expiresAt || t.expiresAt > now)
+    }
+
+    if (candidates.length === 0) {
+      // Trigger async refetch
+      this.fetchRipTokens()
+      return null
+    }
+
+    return candidates[Math.floor(Math.random() * candidates.length)]
+  }
+
+  _startRipRefreshTimer() {
+    const refreshInterval = this.config.rip?.refreshIntervalMs || 30 * 60 * 1000
+
+    this._ripRefreshTimer = setInterval(() => {
+      this.fetchRipTokens()
+    }, refreshInterval)
+  }
+
   // ---- Cleanup ----
 
   stop() {
@@ -370,6 +464,10 @@ export default class ExternalApiManager {
     if (this._youtubeRefreshTimer) {
       clearInterval(this._youtubeRefreshTimer)
       this._youtubeRefreshTimer = null
+    }
+    if (this._ripRefreshTimer) {
+      clearInterval(this._ripRefreshTimer)
+      this._ripRefreshTimer = null
     }
   }
 }

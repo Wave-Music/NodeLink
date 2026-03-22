@@ -377,6 +377,41 @@ export default {
       artistLoadLimit: 1, // 0 = no limit, 1 = 10 tracks, 2 = 20 tracks, etc.
       albumLoadLimit: 1, // 0 = no limit, 1 = 50 tracks, 2 = 100 tracks, etc.
       playlistLoadLimit: 1 // 0 = no limit, 1 = 100 tracks, 2 = 200 tracks, etc.
+    },
+    rip: {
+      enabled: false,
+      urlPattern: '', // Regex with named groups "type" and "identifier" for matching URLs
+      searchPrefix: '', // Search prefix (e.g. "ripsearch")
+      recommendationPrefix: '', // Recommendation prefix (e.g. "riprec")
+      linkBase: '', // Base URL for links
+      devLinkBase: '', // Dev base URL for links (optional fallback)
+      privateApiBase: '', // Primary API base URL
+      devApiBase: '', // Dev API base URL (optional fallback)
+      searchApiBase: '', // Search API base URL
+      cdnBase: '', // CDN base URL for artwork etc.
+      userAgent: 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36',
+      typeMap: {}, // Maps URL type capture group values to internal types (album, playlist, artist, track)
+      apiPaths: { // API path templates with {id}, {query}, {limit} placeholders
+        track: '',
+        album: '',
+        playlist: '',
+        playlistTracks: '',
+        artistProfile: '',
+        play: '',
+        search: ''
+      },
+      linkPaths: { // Link path templates appended to linkBase, with {id} placeholder
+        track: '',
+        album: '',
+        artist: '',
+        playlist: ''
+      },
+      cdnPaths: { // CDN path templates appended to cdnBase, with {id}, {thumbnail} placeholders
+        playlistArt: ''
+      },
+      playBody: {}, // Request body sent to the play endpoint
+      streamParamName: '', // Query param name to extract from stream URL and re-send as cookie
+      fields: {} // Response field name mappings (string for dot-path, array for fallback dot-paths)
     }
   },
   lyrics: {
@@ -522,6 +557,10 @@ export default {
     youtube: { // Endpoint: GET /api/youtube/tokens (returns { tokens: [{ access_token: 'token_value', refresh_token: 'refresh_token_value', token_type: 'Bearer', expires_at: 'iso_ts' }, ...] }) and POST /api/youtube/tokens (body { access_token: 'token_value' })
       enabled: false,
       refreshIntervalMs: 20 * 60 * 60 * 1000 // Refetch tokens interval
+    },
+    rip: { // Endpoint: GET /api/rip/tokens (returns { tokens: [{ access_token: '', expires_at: '', api_url: '', environment: '' }, ...] })
+      enabled: false,
+      refreshIntervalMs: 30 * 60 * 1000 // Refetch tokens interval (30 min)
     }
   },
   plugins: [
