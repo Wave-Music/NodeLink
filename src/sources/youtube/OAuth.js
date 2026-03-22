@@ -30,9 +30,19 @@ export default class OAuth {
     this.currentTokenIndex = 0
     this.accessToken = null
     this.tokenExpiry = 0
+    this._lastExternalToken = null
   }
 
   async getAccessToken() {
+    // External API tokens take precedence
+    if (this.nodelink.externalApiManager?.youtubeEnabled) {
+      const externalToken = this.nodelink.externalApiManager.getYoutubeToken()
+      if (externalToken) {
+        this._lastExternalToken = externalToken
+        return externalToken
+      }
+    }
+
     if (
       !this.refreshToken.length ||
       (this.refreshToken.length === 1 && this.refreshToken[0] === '')
@@ -157,6 +167,13 @@ export default class OAuth {
 
     return {
       Authorization: `Bearer ${token}`
+    }
+  }
+
+  async reportTokenFailure() {
+    if (this._lastExternalToken && this.nodelink.externalApiManager?.youtubeEnabled) {
+      await this.nodelink.externalApiManager.reportYoutubeTokenFailure(this._lastExternalToken)
+      this._lastExternalToken = null
     }
   }
 

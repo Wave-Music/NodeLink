@@ -30,8 +30,35 @@ export default class DeezerSource {
     this.licenseToken = null
   }
 
+  _getCurrentSession() {
+    if (this.nodelink.externalApiManager?.deezerEnabled) {
+      const session = this.nodelink.externalApiManager.getDeezerSession()
+      if (session) return session
+    }
+    return {
+      arl: null,
+      csrfToken: this.csrfToken,
+      licenseToken: this.licenseToken,
+      cookie: this.cookie
+    }
+  }
+
   async setup() {
     logger('info', 'Sources', 'Initializing Deezer source...')
+
+    // External API mode: ARLs are managed externally
+    if (this.nodelink.externalApiManager?.deezerEnabled) {
+      const poolSize = this.nodelink.externalApiManager.deezerArls.length
+      if (poolSize > 0) {
+        const session = this.nodelink.externalApiManager.getDeezerSession()
+        if (session) {
+          this.licenseToken = session.licenseToken
+          this.cookie = session.cookie
+        }
+      }
+      logger('info', 'Sources', `Deezer source setup with external API (${poolSize} ARLs available).`)
+      return true
+    }
 
     const cachedCsrf = this.nodelink.credentialManager.get('deezer_csrf_token')
     const cachedLicense = this.nodelink.credentialManager.get(
@@ -180,11 +207,12 @@ export default class DeezerSource {
         }
       }
 
+      const recSession = this._getCurrentSession()
       const { body: result, error } = await makeRequest(
-        `https://www.deezer.com/ajax/gw-light.php?method=${method}&input=3&api_version=1.0&api_token=${this.csrfToken}`,
+        `https://www.deezer.com/ajax/gw-light.php?method=${method}&input=3&api_version=1.0&api_token=${recSession.csrfToken}`,
         {
           method: 'POST',
-          headers: { Cookie: this.cookie },
+          headers: { Cookie: recSession.cookie },
           body: payload,
           disableBodyCompression: true
         }
@@ -403,13 +431,15 @@ export default class DeezerSource {
       if (cached) return cached
     }
 
-    if (this.licenseToken) {
+    const session = this._getCurrentSession()
+
+    if (session.licenseToken) {
       try {
         const { body: trackData } = await makeRequest(
-          `https://www.deezer.com/ajax/gw-light.php?method=song.getListData&input=3&api_version=1.0&api_token=${this.csrfToken}`,
+          `https://www.deezer.com/ajax/gw-light.php?method=song.getListData&input=3&api_version=1.0&api_token=${session.csrfToken}`,
           {
             method: 'POST',
-            headers: { Cookie: this.cookie },
+            headers: { Cookie: session.cookie },
             body: { sng_ids: [decodedTrack.identifier] },
             disableBodyCompression: true
           }
@@ -430,7 +460,7 @@ export default class DeezerSource {
             {
               method: 'POST',
               body: {
-                license_token: this.licenseToken,
+                license_token: session.licenseToken,
                 media: [
                   {
                     type: 'FULL',
@@ -473,6 +503,9 @@ export default class DeezerSource {
           }
         }
       } catch (e) {
+        if (session.arl && this.nodelink.externalApiManager?.deezerEnabled) {
+          this.nodelink.externalApiManager.reportDeezerArlFailure(session.arl)
+        }
         logger(
           'warn',
           'Deezer',

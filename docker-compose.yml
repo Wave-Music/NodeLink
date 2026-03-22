@@ -254,6 +254,7 @@ services:
       # NODELINK_MIX_AUTOCLEANUP: "true"
 
     # volumes:
+    #   - ./config.js:/app/config.js
     #   - ./local-music:/app/local-music
     #   - ./logs:/app/logs
     #   - ./.cache:/app/.cache

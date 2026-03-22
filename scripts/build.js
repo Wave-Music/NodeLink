@@ -41,7 +41,7 @@ await esbuild.build({
   platform: 'node',
   target: 'node20',
   outfile: path.join(distDir, 'main.mjs'),
-  external: ['bufferutil', 'utf-8-validate', '@toddynnn/symphonia-decoder', 'toddy-mediaplex'],
+  external: ['bufferutil', 'utf-8-validate', '@toddynnn/symphonia-decoder', 'toddy-mediaplex', 'jsdom'],
   format: 'esm',
   keepNames: true,
   loader: { '.node': 'file' },
@@ -99,6 +99,11 @@ if (fs.existsSync(mediaplexPkgDir)) {
   for (const binary of fs.readdirSync(mediaplexPkgDir).filter(f => f.endsWith('.node'))) {
     fs.copyFileSync(path.join(mediaplexPkgDir, binary), path.join(mediaplexDest, binary))
   }
+}
+
+if (process.env.BUNDLE_ONLY) {
+  console.log('Bundle-only mode: skipping SEA binary creation.')
+  process.exit(0)
 }
 
 const filesToEmbed = {}
